@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BB판독">
+<meta name="theme-color" content="#0B0E14">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-180.png">
+<title>BB 이탈 판독</title>
+<script src="lwc.js"></script>
+<style>
+:root{
+  --bg:#0B0E14; --panel:#131822; --line:#232A36; --text:#E8EAED; --sub:#98A2B3; --mute:#6B7585;
+  --up:#FF4545; --down:#3D8BFF; --bb:#FFD60A;
+  --ma5:#FF4D6D; --ma20:#2ECC71; --ma60:#3FA7FF; --ma120:#C77DFF; --ma240:#E0E0E0;
+  --safe-t:env(safe-area-inset-top); --safe-b:env(safe-area-inset-bottom);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+body{padding:calc(var(--safe-t) + 8px) 16px calc(var(--safe-b) + 24px);max-width:720px;margin:0 auto}
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;padding:8px 0 12px}
+h1{font-size:22px;margin:0;letter-spacing:-.3px}
+.sub{color:var(--sub);font-size:13px;margin-top:4px}
+select{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:10px;
+  padding:8px 10px;font-size:14px;appearance:none;-webkit-appearance:none}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:4px 0 14px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.stat label{display:block;color:var(--mute);font-size:11px;margin-bottom:2px}
+.stat b{font-size:18px;font-weight:600}
+.stat{padding:10px}
+.star{font-size:11.5px;color:#0B0E14;background:var(--bb);border-radius:999px;padding:2px 8px;font-weight:700;margin-right:6px;vertical-align:2px}
+.tag{font-size:11.5px;color:#C9D1D9;background:#1E2532;border-radius:999px;padding:2px 8px;margin-right:6px;vertical-align:2px}
+.sq{color:var(--bb)}
+.tabs{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:3px;margin-bottom:12px;
+  position:sticky;top:calc(var(--safe-t) + 4px);z-index:5}
+.tabs button{flex:1;border:0;background:transparent;color:var(--sub);font-size:14px;padding:9px 0;border-radius:9px;font-weight:600;white-space:nowrap}
+.tabs button.on{background:#1E2532;color:var(--text)}
+.tabs button .n{font-size:12px;margin-left:4px;opacity:.8}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.name{font-size:17px;font-weight:600}
+.code{color:var(--mute);font-size:12px;margin-left:6px;font-weight:400}
+.px{font-size:16px;text-align:right;white-space:nowrap}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 6px}
+.chip{font-size:12px;color:var(--sub);background:#0F131B;border:1px solid var(--line);border-radius:999px;padding:3px 9px}
+.chip.hl{color:var(--bb);border-color:#4A4010}
+.ctx{margin:8px 0 0;padding:0;list-style:none;font-size:13.5px;line-height:1.55;color:#C9CFD8}
+.ctx li:before{content:"· ";color:var(--mute)}
+.news{margin:8px 0 0;padding:0;list-style:none;font-size:13.5px;line-height:1.45}
+.news li{padding:6px 0;border-top:1px solid var(--line)}
+.news a{color:#9CCBFF;text-decoration:none}
+.news .m{color:var(--mute);font-size:11.5px;display:block;margin-top:2px}
+.sec{font-size:12px;color:var(--mute);margin:12px 0 2px;font-weight:600}
+.open{margin-top:10px;width:100%;border:1px solid var(--line);background:#1A202B;color:var(--text);
+  border-radius:10px;padding:10px;font-size:14px;font-weight:600}
+.chartbox{height:360px;margin-top:10px;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11px;color:var(--sub);margin-top:8px}
+.legend i{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-right:4px}
+.empty{color:var(--mute);text-align:center;padding:40px 0;font-size:14px}
+.rule{color:var(--mute);font-size:11.5px;line-height:1.55;margin-top:18px;border-top:1px solid var(--line);padding-top:12px}
+.up{color:var(--up)} .down{color:var(--down)}
+.err{background:#2A1416;border:1px solid #5A2226;color:#FFB4B4;border-radius:12px;padding:12px;font-size:14px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>BB(80, 2.0) 이탈 판독</h1>
+    <div class="sub" id="meta">불러오는 중…</div>
+  </div>
+  <select id="date" aria-label="기준일"></select>
+</header>
+
+<div class="stats">
+  <div class="stat"><label>코스피</label><b id="kospi">-</b></div>
+  <div class="stat"><label>상단 이탈</label><b id="nUp" class="up">-</b></div>
+  <div class="stat"><label>하단 이탈</label><b id="nDn" class="down">-</b></div>
+  <div class="stat"><label>극단 수축</label><b id="nSq" class="sq">-</b></div>
+</div>
+
+<div class="tabs" role="tablist">
+  <button id="tUp" class="on" onclick="setTab('up')">▲ 상단<span class="n" id="cUp"></span></button>
+  <button id="tDn" onclick="setTab('down')">▼ 하단<span class="n" id="cDn"></span></button>
+  <button id="tSq" onclick="setTab('squeeze')">◆ 수축<span class="n" id="cSq"></span></button>
+</div>
+
+<main id="list"></main>
+
+<div class="rule" id="rule">
+  규칙: 코스피 시가총액 기준 이상 종목 · 볼린저밴드 = 80일 이동평균 ± 2.0 × 표준편차(노란색) ·
+  이동평균선 5·20·60·120·240일 · 종가 &gt; 상한 = 상단 이탈, 종가 &lt; 하한 = 하단 이탈.<br>
+  극단 수축: 밴드폭 BW=(상한−하한)/중간선이 1년 중 하위 20% · 1년 최대의 40% 이하 · 25% 이하 · 종가가 밴드 안.
+  ★ 이상형 = 여기에 80일선 20일 기울기 &gt; 0.<br>
+  차트: TradingView Lightweight Charts™.<br>
+  조건 충족 여부만 표시하며 매수·매도 추천이 아닙니다. '배경'은 지수·거래량·수급·뉴스를 규칙적으로 모은 참고 정보입니다.
+</div>
+
+<script>
+const MA = [["ma5","#FF4D6D","5"],["ma20","#2ECC71","20"],["ma60","#3FA7FF","60"],["ma120","#C77DFF","120"],["ma240","#E0E0E0","240"]];
+let DATA = null, TAB = "up";
+const charts = {};
+const $ = id => document.getElementById(id);
+const fmt = (v, d=0) => v==null ? "-" : v.toLocaleString("ko-KR",{minimumFractionDigits:d,maximumFractionDigits:d});
+const sgn = v => v==null ? "-" : (v>0?"+":"") + v.toFixed(2) + "%";
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const bust = () => "?t=" + Date.now();
+
+async function getJSON(p){
+  const r = await fetch(p + bust(), {cache:"no-store"});
+  if(!r.ok) throw new Error(p + " " + r.status);
+  return r.json();
+}
+
+async function init(){
+  try{
+    const idx = await getJSON("data/index.json");
+    const sel = $("date");
+    sel.innerHTML = idx.map(x => `<option value="${x.file}">${x.date.slice(5).replace("-","/")} ▲${x.up} ▼${x.down}${x.sq!=null?" ◆"+x.sq:""}</option>`).join("");
+    sel.onchange = () => load(sel.value);
+    await load(idx.length ? idx[0].file : "latest.json");
+  }catch(e){
+    try{ await load("latest.json"); }
+    catch(e2){ $("list").innerHTML = `<div class="err">아직 게시된 판독 결과가 없습니다. Mac에서 판독을 한 번 실행해 주세요.</div>`; $("meta").textContent=""; }
+  }
+}
+
+async function load(file){
+  DATA = await getJSON("data/" + file);
+  const d = DATA;
+  const wd = "일월화수목금토"[new Date(d.date+"T00:00:00+09:00").getDay()];
+  $("meta").textContent = `${d.date}(${wd}) 종가 · 시총 ${d.min_cap}조↑ ${d.universe}종목 · 갱신 ${d.generated.slice(5)}`;
+  $("kospi").textContent = sgn(d.kospi_chg);
+  $("kospi").className = d.kospi_chg>0 ? "up" : d.kospi_chg<0 ? "down" : "";
+  $("nUp").textContent = d.up.length; $("nDn").textContent = d.down.length;
+  $("cUp").textContent = d.up.length; $("cDn").textContent = d.down.length;
+  d.squeeze = d.squeeze || [];
+  const ns = d.squeeze.filter(x => x.grade==="★").length;
+  $("nSq").textContent = d.squeeze.length + (ns ? ` ★${ns}` : ""); $("cSq").textContent = d.squeeze.length;
+  render();
+}
+
+function setTab(t){
+  TAB = t;
+  $("tUp").classList.toggle("on", t==="up"); $("tDn").classList.toggle("on", t==="down"); $("tSq").classList.toggle("on", t==="squeeze");
+  render();
+}
+
+function render(){
+  Object.values(charts).forEach(c => c.remove()); for (const k in charts) delete charts[k];
+  const arr = DATA[TAB];
+  if(!arr.length){ $("list").innerHTML = `<div class="empty">해당 종목 없음</div>`; return; }
+  $("list").innerHTML = arr.map((s,i) => TAB==="squeeze" ? sqCard(s,i) : card(s,i)).join("");
+  if(arr.length <= 3) arr.forEach((s,i) => toggleChart(i, true));
+}
+
+function card(s, i){
+  const cls = s.chg_pct>0 ? "up" : s.chg_pct<0 ? "down" : "";
+  const flows = s.flows && Object.keys(s.flows).length
+    ? `<span class="chip">외인 ${fmt(s.flows["외국인"])} · 기관 ${fmt(s.flows["기관"])}</span>` : "";
+  const ctx = (s.context||[]).filter(c => !c.startsWith("외국인")).map(c => `<li>${esc(c)}</li>`).join("");
+  const news = s.news.length
+    ? s.news.map(n => `<li><a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a><span class="m">${esc(n.time)} · ${esc(n.press)}</span></li>`).join("")
+    : `<li style="color:var(--mute)">당일 종목 뉴스 없음 — 시장·업종·수급 요인 가능성</li>`;
+  return `<section class="card">
+    <div class="row"><div class="name">${esc(s.name)}<span class="code">${s.code}</span></div>
+      <div class="px">${fmt(s.close)}원 <b class="${cls}">${sgn(s.chg_pct)}</b></div></div>
+    <div class="chips">
+      <span class="chip hl">밴드대비 ${sgn(s.gap_pct)}</span>
+      <span class="chip">${s.streak===1 ? "신규 이탈" : s.streak+"일째 이탈"}</span>
+      <span class="chip">%B ${s.pctb?.toFixed(2)}</span>
+      <span class="chip">시총 ${(s.cap_eok/10000).toFixed(1)}조</span>${flows}
+    </div>
+    <div class="sec">그날 움직임의 배경</div><ul class="ctx">${ctx}</ul>
+    <div class="sec">당일 뉴스</div><ul class="news">${news}</ul>
+    <div id="cw${i}"></div>
+    <button class="open" id="b${i}" onclick="toggleChart(${i})">차트 보기</button>
+  </section>`;
+}
+
+function sqCard(s, i){
+  const cls = s.chg_pct>0 ? "up" : s.chg_pct<0 ? "down" : "";
+  const badge = s.grade==="★" ? `<span class="star">★ 이상형</span>` : `<span class="tag">수축</span>`;
+  return `<section class="card">
+    <div class="row"><div class="name">${badge}${esc(s.name)}<span class="code">${s.code}</span></div>
+      <div class="px">${fmt(s.close)}원 <b class="${cls}">${sgn(s.chg_pct)}</b></div></div>
+    <div class="chips">
+      <span class="chip hl">밴드폭 ${s.bw}%</span>
+      <span class="chip">1년 최대 ${s.bw_max}% 대비 ${s.ratio_pct}%</span>
+      <span class="chip">1년 중 하위 ${s.rank_pct}%</span>
+      <span class="chip">80일선 20일 ${s.mid_slope20>0?"+":""}${s.mid_slope20}%</span>
+      <span class="chip">%B ${s.pctb?.toFixed(2)}</span>
+      <span class="chip">${s.streak}일째</span>
+      <span class="chip">시총 ${(s.cap_eok/10000).toFixed(1)}조</span>
+    </div>
+    <div id="cw${i}"></div>
+    <button class="open" id="b${i}" onclick="toggleChart(${i})">차트 보기</button>
+  </section>`;
+}
+
+function toggleChart(i, force){
+  const wrap = $("cw"+i), btn = $("b"+i);
+  if(charts[i] && !force){ charts[i].remove(); delete charts[i]; wrap.innerHTML=""; btn.textContent="차트 보기"; return; }
+  if(charts[i]) return;
+  const s = DATA[TAB][i];
+  wrap.innerHTML = `<div class="chartbox" id="c${i}"></div><div class="legend">
+    <span><i style="background:var(--bb)"></i>BB 상·하한</span><span><i style="background:repeating-linear-gradient(90deg,var(--bb) 0 4px,transparent 4px 7px)"></i>BB 중간(80)</span>
+    ${MA.map(m => `<span><i style="background:${m[1]}"></i>${m[2]}일</span>`).join("")}
+    ${TAB==="squeeze" ? `<span><i style="background:#fff"></i>밴드폭 BW(아래)</span>` : ""}</div>`;
+  btn.textContent = "차트 닫기";
+  const el = $("c"+i);
+  const ch = LightweightCharts.createChart(el, {
+    width: el.clientWidth, height: 360,
+    layout:{background:{color:"#0E1117"}, textColor:"#98A2B3", fontSize:11},
+    grid:{vertLines:{color:"#161C26"}, horzLines:{color:"#161C26"}},
+    rightPriceScale:{borderColor:"#232A36", scaleMargins:{top:0.06, bottom:0.24}},
+    timeScale:{borderColor:"#232A36", rightOffset:3},
+    crosshair:{mode:0},
+    localization:{locale:"ko-KR", dateFormat:"yy.MM.dd", priceFormatter: p => Math.round(p).toLocaleString("ko-KR")},
+    handleScale:{axisPressedMouseMove:true}, handleScroll:{vertTouchDrag:false},
+  });
+  const c = s.chart, T = c.t;
+  const line = (arr) => arr.map((v,k) => v==null ? {time:T[k]} : {time:T[k], value:v});
+  const bbOpt = {color:"#FFD60A", lineWidth:2, priceLineVisible:false, lastValueVisible:false, crosshairMarkerVisible:false};
+  ch.addLineSeries(bbOpt).setData(line(c.bb_up));
+  ch.addLineSeries(bbOpt).setData(line(c.bb_dn));
+  ch.addLineSeries({...bbOpt, lineWidth:1, lineStyle:2}).setData(line(c.bb_mid));
+  MA.forEach(([k,col]) => ch.addLineSeries({color:col, lineWidth:1, priceLineVisible:false, lastValueVisible:false, crosshairMarkerVisible:false}).setData(line(c[k])));
+  const cs = ch.addCandlestickSeries({upColor:"#FF4545", downColor:"#3D8BFF", borderUpColor:"#FF4545", borderDownColor:"#3D8BFF",
+    wickUpColor:"#FF4545", wickDownColor:"#3D8BFF", priceLineVisible:false});
+  cs.setData(T.map((t,k) => ({time:t, open:c.o[k], high:c.h[k], low:c.l[k], close:c.c[k]})));
+  const marks = [];
+  T.forEach((t,k) => {
+    if(c.bb_up[k]!=null && c.c[k] > c.bb_up[k]) marks.push({time:t, position:"aboveBar", color:"#FFFFFF", shape:"circle", size:0.1});
+    if(c.bb_dn[k]!=null && c.c[k] < c.bb_dn[k]) marks.push({time:t, position:"belowBar", color:"#FFFFFF", shape:"circle", size:0.1});
+  });
+  cs.setMarkers(marks);
+  if(c.bw){   // 수축 탭: 아래 칸에 밴드폭(BW %)
+    const bwS = ch.addLineSeries({priceScaleId:"bw", color:"#FFFFFF", lineWidth:1.5, priceLineVisible:false, lastValueVisible:true,
+      priceFormat:{type:"custom", minMove:0.1, formatter: v => v.toFixed(1)+"%"}});
+    ch.priceScale("bw").applyOptions({scaleMargins:{top:0.8, bottom:0.02}});
+    bwS.setData(line(c.bw));
+  } else {
+    const vol = ch.addHistogramSeries({priceScaleId:"vol", priceFormat:{type:"volume"}, priceLineVisible:false, lastValueVisible:false});
+    ch.priceScale("vol").applyOptions({scaleMargins:{top:0.8, bottom:0}});
+    vol.setData(T.map((t,k) => ({time:t, value:c.v[k], color: c.c[k]>=c.o[k] ? "rgba(255,69,69,.55)" : "rgba(61,139,255,.55)"})));
+  }
+  ch.timeScale().setVisibleLogicalRange({from: T.length-130, to: T.length+2});
+  charts[i] = ch;
+}
+
+window.addEventListener("resize", () => { for (const k in charts){ const el=$("c"+k); if(el) charts[k].applyOptions({width:el.clientWidth}); } });
+document.addEventListener("visibilitychange", () => { if(!document.hidden && DATA) init(); });
+init();
+</script>
+</body>
+</html>
